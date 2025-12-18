@@ -1,0 +1,58 @@
+# Complete GitLab CI/CD Configuration
+# This builds the Docker image and uses it for reviews
+#
+# Required CI/CD Variables (Settings → CI/CD → Variables):
+# - GITLAB_TOKEN: GitLab access token with 'api' scope
+# - OPENAI_API_KEY: Your OpenAI API key
+
+stages:
+  - build
+  - review
+
+# Build the Docker image (runs on main branch only)
+build-ai-reviewer:
+  stage: build
+  image: docker:24
+  services:
+    - docker:24-dind
+  before_script:
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+  script:
+    - docker build -t ${CI_REGISTRY_IMAGE}/ai-pr-reviewer:latest .
+    - docker build -t ${CI_REGISTRY_IMAGE}/ai-pr-reviewer:${CI_COMMIT_SHORT_SHA} .
+    - docker push ${CI_REGISTRY_IMAGE}/ai-pr-reviewer:latest
+    - docker push ${CI_REGISTRY_IMAGE}/ai-pr-reviewer:${CI_COMMIT_SHORT_SHA}
+  only:
+    - main
+    - master
+
+# Use the Docker image to review merge requests
+ai-code-review:
+  stage: review
+  image: ${CI_REGISTRY_IMAGE}/ai-pr-reviewer:latest
+  
+  # Only run on merge requests
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+  
+  variables:
+    # Platform
+    PLATFORM: "gitlab"
+    
+    # AI Models (customize as needed)
+    OPENAI_LIGHT_MODEL: "gpt-3.5-turbo"
+    OPENAI_HEAVY_MODEL: "gpt-4"
+    OPENAI_MODEL_TEMPERATURE: "0.05"
+    
+    # Review settings (customize as needed)
+    MAX_FILES: "150"
+    REVIEW_SIMPLE_CHANGES: "false"
+    REVIEW_COMMENT_LGTM: "false"
+    DISABLE_REVIEW: "false"
+    DISABLE_RELEASE_NOTES: "false"
+    DEBUG: "false"
+    LANGUAGE: "en-US"
+  
+  script:
+    - echo "🤖 Running AI code review on merge request..."
+    - echo "Using models - Light: ${OPENAI_LIGHT_MODEL}, Heavy: ${OPENAI_HEAVY_MODEL}"

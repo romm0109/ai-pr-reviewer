@@ -117,31 +117,46 @@ jobs:
 
 ### GitLab Installation
 
-For GitLab, add the following to your repository at `.gitlab-ci.yml`:
+**🐳 Easy Docker Setup (Recommended)**
 
-```yaml
-stages:
-  - review
+The simplest way to use this on GitLab is with Docker. See [DOCKER_SETUP.md](./DOCKER_SETUP.md) for the complete guide.
 
-ai-code-review:
-  stage: review
-  image: node:18-alpine
-  
-  # Only run on merge request events
-  rules:
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-  
-  variables:
-    PLATFORM: "gitlab"
-    OPENAI_LIGHT_MODEL: "gpt-3.5-turbo"
-    OPENAI_HEAVY_MODEL: "gpt-4"
-  
-  before_script:
-    - npm ci --production
-  
-  script:
-    - node dist/index.js
-```
+**Quick Start:**
+
+1. Build and push the Docker image:
+   ```bash
+   docker build -t registry.gitlab.com/YOUR-USERNAME/YOUR-PROJECT/ai-pr-reviewer:latest .
+   docker push registry.gitlab.com/YOUR-USERNAME/YOUR-PROJECT/ai-pr-reviewer:latest
+   ```
+
+2. Add to your `.gitlab-ci.yml`:
+   ```yaml
+   stages:
+     - review
+
+   ai-code-review:
+     stage: review
+     image: registry.gitlab.com/YOUR-USERNAME/YOUR-PROJECT/ai-pr-reviewer:latest
+     
+     rules:
+       - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+     
+     variables:
+       PLATFORM: "gitlab"
+       OPENAI_LIGHT_MODEL: "gpt-3.5-turbo"
+       OPENAI_HEAVY_MODEL: "gpt-4"
+     
+     script:
+       - echo "Running AI code review..."
+   ```
+
+3. Set CI/CD variables in **Settings → CI/CD → Variables**:
+   - `GITLAB_TOKEN`: GitLab access token with `api` scope
+   - `OPENAI_API_KEY`: Your OpenAI API key
+
+**Alternative: Manual Setup**
+
+If you prefer not to use Docker, see [.gitlab-ci.example.yml](./.gitlab-ci.example.yml) for a configuration that installs dependencies manually.
 
 #### GitLab Environment variables
 
@@ -159,24 +174,11 @@ For self-hosted GitLab instances, add these additional variables:
 - `GITLAB_INSECURE_SSL`: Set to `true` to skip SSL verification (not recommended for production)
 - `GITLAB_CA_CERT`: Path to custom CA certificate file for SSL verification
 
-Example for self-hosted GitLab:
+#### Example Configurations
 
-```yaml
-ai-code-review:
-  stage: review
-  image: node:18-alpine
-  rules:
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-  variables:
-    PLATFORM: "gitlab"
-    # GITLAB_BASE_URL is set in CI/CD variables
-  before_script:
-    - npm ci --production
-  script:
-    - node dist/index.js
-```
-
-See [.gitlab-ci.example.yml](./.gitlab-ci.example.yml) for a complete example configuration.
+- **Simple Docker setup**: [.gitlab-ci.simple.yml](./.gitlab-ci.simple.yml)
+- **Build and use**: [.gitlab-ci.build-and-use.yml](./.gitlab-ci.build-and-use.yml)
+- **Manual setup**: [.gitlab-ci.example.yml](./.gitlab-ci.example.yml)
 
 ### Models: `gpt-4` and `gpt-3.5-turbo`
 
