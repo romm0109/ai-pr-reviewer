@@ -5,7 +5,7 @@ We recommend installing the Pro version from [CodeRabbit](http://coderabbit.ai).
 
 [![Discord](https://img.shields.io/badge/Join%20us%20on-Discord-blue?logo=discord&style=flat-square)](https://discord.gg/GsXnASn26c)
 
-# AI-based PR reviewer and summarizer
+# AI-based PR/MR reviewer and summarizer
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![GitHub](https://img.shields.io/github/last-commit/coderabbitai/ai-pr-reviewer/main?style=flat-square)](https://github.com/coderabbitai/ai-pr-reviewer/commits/main)
@@ -13,9 +13,14 @@ We recommend installing the Pro version from [CodeRabbit](http://coderabbit.ai).
 ## Overview
 
 CodeRabbit `ai-pr-reviewer` is an AI-based code reviewer and summarizer for
-GitHub pull requests using OpenAI's `gpt-3.5-turbo` and `gpt-4` models. It is
-designed to be used as a GitHub Action and can be configured to run on every
-pull request and review comments
+GitHub pull requests and GitLab merge requests using OpenAI's `gpt-3.5-turbo` and `gpt-4` models. It is
+designed to be used as a GitHub Action or GitLab CI/CD job and can be configured to run on every
+pull request/merge request and review comments.
+
+### Supported Platforms
+
+- **GitHub** - GitHub Actions (cloud and self-hosted runners)
+- **GitLab** - GitLab CI/CD (gitlab.com and self-hosted instances)
 
 ## Reviewer Features:
 
@@ -61,6 +66,8 @@ FAQs, you can refer to the sections below.
 
 ## Install instructions
 
+### GitHub Installation
+
 `ai-pr-reviewer` runs as a GitHub Action. Add the below file to your repository
 at `.github/workflows/ai-pr-reviewer.yml`
 
@@ -97,7 +104,7 @@ jobs:
           review_comment_lgtm: false
 ```
 
-#### Environment variables
+#### GitHub Environment variables
 
 - `GITHUB_TOKEN`: This should already be available to the GitHub Action
   environment. This is used to add comments to the pull request.
@@ -107,6 +114,69 @@ jobs:
 - `OPENAI_API_ORG`: (optional) use this to use the specified organization with
   OpenAI API if you have multiple. Please add this key to your GitHub Action
   secrets.
+
+### GitLab Installation
+
+For GitLab, add the following to your repository at `.gitlab-ci.yml`:
+
+```yaml
+stages:
+  - review
+
+ai-code-review:
+  stage: review
+  image: node:18-alpine
+  
+  # Only run on merge request events
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+  
+  variables:
+    PLATFORM: "gitlab"
+    OPENAI_LIGHT_MODEL: "gpt-3.5-turbo"
+    OPENAI_HEAVY_MODEL: "gpt-4"
+  
+  before_script:
+    - npm ci --production
+  
+  script:
+    - node dist/index.js
+```
+
+#### GitLab Environment variables
+
+Set these in your GitLab project's CI/CD settings (Settings > CI/CD > Variables):
+
+- `GITLAB_TOKEN`: GitLab personal access token or project/group access token with `api` scope.
+  This is used to read merge request data and post comments.
+- `OPENAI_API_KEY`: OpenAI API key for the AI model.
+
+#### Self-hosted GitLab
+
+For self-hosted GitLab instances, add these additional variables:
+
+- `GITLAB_BASE_URL`: Your GitLab instance URL (e.g., `https://gitlab.company.com`)
+- `GITLAB_INSECURE_SSL`: Set to `true` to skip SSL verification (not recommended for production)
+- `GITLAB_CA_CERT`: Path to custom CA certificate file for SSL verification
+
+Example for self-hosted GitLab:
+
+```yaml
+ai-code-review:
+  stage: review
+  image: node:18-alpine
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+  variables:
+    PLATFORM: "gitlab"
+    # GITLAB_BASE_URL is set in CI/CD variables
+  before_script:
+    - npm ci --production
+  script:
+    - node dist/index.js
+```
+
+See [.gitlab-ci.example.yml](./.gitlab-ci.example.yml) for a complete example configuration.
 
 ### Models: `gpt-4` and `gpt-3.5-turbo`
 

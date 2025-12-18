@@ -1,0 +1,108 @@
+# GitLab CI/CD Configuration for AI PR Reviewer
+#
+# This is an example configuration for running the AI PR Reviewer on GitLab.
+# Copy this file to .gitlab-ci.yml in your repository and customize as needed.
+#
+# Required CI/CD Variables (set in GitLab project settings):
+# - GITLAB_TOKEN: GitLab personal access token or project access token with api scope
+# - OPENAI_API_KEY: OpenAI API key for the AI model
+#
+# Optional CI/CD Variables:
+# - GITLAB_BASE_URL: For self-hosted GitLab instances (defaults to https://gitlab.com)
+# - OPENAI_BASE_URL: For custom OpenAI-compatible API endpoints
+
+stages:
+  - review
+
+# AI Code Review Job
+ai-code-review:
+  stage: review
+  image: node:18-alpine
+  
+  # Only run on merge request events
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+  
+  variables:
+    # Platform configuration
+    PLATFORM: "gitlab"
+    
+    # GitLab configuration (uses CI predefined variables)
+    # GITLAB_TOKEN should be set in CI/CD variables
+    
+    # OpenAI configuration
+    OPENAI_LIGHT_MODEL: "gpt-3.5-turbo"
+    OPENAI_HEAVY_MODEL: "gpt-4"
+    OPENAI_MODEL_TEMPERATURE: "0.05"
+    OPENAI_RETRIES: "5"
+    OPENAI_TIMEOUT_MS: "360000"
+    OPENAI_CONCURRENCY_LIMIT: "6"
+    
+    # Review configuration
+    MAX_FILES: "150"
+    REVIEW_SIMPLE_CHANGES: "false"
+    REVIEW_COMMENT_LGTM: "false"
+    DISABLE_REVIEW: "false"
+    DISABLE_RELEASE_NOTES: "false"
+    DEBUG: "false"
+    LANGUAGE: "en-US"
+  
+  before_script:
+    # Install dependencies
+    - npm ci --production
+  
+  script:
+    # Run the AI reviewer
+    - node dist/index.js
+  
+  # Cache node_modules for faster builds
+  cache:
+    key: ${CI_COMMIT_REF_SLUG}
+    paths:
+      - node_modules/
+
+# Alternative: Using Docker image (recommended for production)
+# Uncomment this job and comment out the one above to use a pre-built Docker image
+#
+# ai-code-review-docker:
+#   stage: review
+#   image: ghcr.io/coderabbitai/ai-pr-reviewer:latest
+#   
+#   rules:
+#     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+#   
+#   variables:
+#     PLATFORM: "gitlab"
+#     OPENAI_LIGHT_MODEL: "gpt-3.5-turbo"
+#     OPENAI_HEAVY_MODEL: "gpt-4"
+#   
+#   script:
+#     - /app/run-review.sh
+
+# Self-hosted GitLab configuration example
+# Uncomment and modify for self-hosted GitLab instances
+#
+# ai-code-review-self-hosted:
+#   stage: review
+#   image: node:18-alpine
+#   
+#   rules:
+#     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+#   
+#   variables:
+#     PLATFORM: "gitlab"
+#     # Set GITLAB_BASE_URL in CI/CD variables to your GitLab instance URL
+#     # e.g., https://gitlab.company.com
+#     
+#     # For self-signed certificates, you can either:
+#     # 1. Set GITLAB_INSECURE_SSL: "true" (not recommended)
+#     # 2. Set GITLAB_CA_CERT to the path of your CA certificate
+#     
+#     OPENAI_LIGHT_MODEL: "gpt-3.5-turbo"
+#     OPENAI_HEAVY_MODEL: "gpt-4"
+#   
+#   before_script:
+#     - npm ci --production
+#   
+#   script:
+#     - node dist/index.js

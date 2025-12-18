@@ -1,5 +1,5 @@
-name: 'AI-based PR Reviewer & Summarizer with Chat Capabilities'
-description: 'AI-based PR Reviewer & Summarizer with Chat Capabilities'
+name: 'AI-based PR/MR Reviewer & Summarizer with Chat Capabilities'
+description: 'AI-based PR/MR Reviewer & Summarizer with Chat Capabilities for GitHub and GitLab'
 branding:
   icon: 'git-merge'
   color: 'orange'
@@ -178,6 +178,38 @@ inputs:
     required: false
     description: 'How many concurrent API calls to make to GitHub?'
     default: '6'
+  # Platform configuration
+  platform:
+    required: false
+    description: |
+      The platform to use. Auto-detected if not specified.
+      Supported values: 'github', 'gitlab'
+    default: ''
+  # GitLab-specific inputs
+  gitlab_token:
+    required: false
+    description: |
+      GitLab personal access token or project/group access token.
+      Required when running on GitLab. Can also be set via GITLAB_TOKEN environment variable.
+    default: ''
+  gitlab_base_url:
+    required: false
+    description: |
+      Base URL for self-hosted GitLab instances (e.g., 'https://gitlab.company.com').
+      Defaults to 'https://gitlab.com' for GitLab cloud.
+    default: ''
+  gitlab_insecure_ssl:
+    required: false
+    description: |
+      Skip SSL certificate verification for self-hosted GitLab instances.
+      WARNING: Not recommended for production use.
+    default: 'false'
+  gitlab_ca_cert:
+    required: false
+    description: |
+      Path to custom CA certificate file for self-hosted GitLab instances.
+      Use this instead of gitlab_insecure_ssl for secure connections.
+    default: ''
   system_message:
     required: false
     description: 'System message to be sent to OpenAI'
